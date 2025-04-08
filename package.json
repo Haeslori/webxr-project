@@ -1,0 +1,23 @@
+{
+  "name": "webxr-project",
+  "version": "1.0.0",
+  "description": "A WebXR project with adjustable platform height and falling ball.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "http-server ./src"
+  },
+  "dependencies": {
+    "aframe": "^1.2.0"
+  },
+  "devDependencies": {
+    "http-server": "^0.12.3"
+  },
+  "keywords": [
+    "webxr",
+    "aframe",
+    "vr",
+    "3d"
+  ],
+  "author": "",
+  "license": "ISC"
+}

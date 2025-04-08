@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebVR Physics Demo</title>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-physics-system@v3.3.0/dist/aframe-physics-system.min.js"></script>
+    <style>
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 999;
+            background: rgba(255,255,255,0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #timerDisplay {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <input type="number" id="heightInput" value="4" min="1" max="8" step="0.5">
+        <button id="setHeightBtn">Höhe</button>
+        <button id="startBtn">Start</button>
+        <button id="resetBtn">Reset</button>
+        <div id="timerDisplay">Dauer: 0.00 s</div>
+    </div>
+
+    <a-scene physics="gravity: 0 -9.8 0">
+        <!-- 基座 -->
+        <a-box id="base" 
+            position="0 0.1 0" 
+            width="2"
+            height="0.2"
+            depth="2"
+            color="#666666"
+            static-body>
+        </a-box>
+
+        <!-- 长杆 -->
+        <a-cylinder id="pole" 
+            position="0 4 0" 
+            radius="0.05" 
+            height="8" 
+            color="#8B4513">
+        </a-cylinder>
+
+        <!-- 可调平台 -->
+        <a-box id="platform" 
+            position="0 4 0" 
+            width="2" 
+            height="0.1" 
+            depth="2" 
+            color="#4444ff">
+        </a-box>
+
+        <!-- 小球 -->
+        <a-sphere id="ball" 
+            position="0 3.9 0" 
+            radius="0.1" 
+            color="#ff0000">
+        </a-sphere>
+
+        <!-- 环境 -->
+        <a-sky color="#ECECEC"></a-sky>
+        <a-light type="ambient" color="#BBB"></a-light>
+        <a-light type="directional" color="#FFF" intensity="0.6" position="-0.5 1 1"></a-light>
+
+        <!-- 摄像机 -->
+        <a-entity position="0 2 8">
+            <a-camera></a-camera>
+        </a-entity>
+    </a-scene>
+    
+    <script src="app.js"></script>
+</body>
+</html>
