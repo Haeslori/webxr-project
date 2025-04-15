@@ -2,8 +2,13 @@
 <html>
 <head>
     <title>WebVR Physics Demo</title>
-    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-physics-system@v3.3.0/dist/aframe-physics-system.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-environment-component@1.3.1/dist/aframe-environment-component.min.js"></script>
     <style>
         #controls {
             position: fixed;
@@ -23,13 +28,13 @@
 <body>
     <div id="controls">
         <input type="number" id="heightInput" value="4" min="1" max="8" step="0.5">
-        <button id="setHeightBtn">Höhe</button>
-        <button id="startBtn">Start</button>
-        <button id="resetBtn">Reset</button>
-        <div id="timerDisplay">Dauer: 0.00 s</div>
+        <button id="setHeightBtn">设置高度</button>
+        <button id="startBtn">开始</button>
+        <button id="resetBtn">重置</button>
+        <div id="timerDisplay">时间: 0.00 秒</div>
     </div>
 
-    <a-scene physics="gravity: 0 -9.8 0">
+    <a-scene physics="gravity: 0 -9.8 0" webxr="optionalFeatures: hand-tracking, local-floor">
         <!-- 基座 -->
         <a-box id="base" 
             position="0 0.1 0" 
@@ -64,13 +69,41 @@
             color="#ff0000">
         </a-sphere>
 
+        <!-- VR 控制器 -->
+        <a-entity id="leftHand" 
+            hand-controls="hand: left; handModelStyle: oculus"
+            laser-controls="hand: left"
+            raycaster="showLine: true; far: 10; interval: 0; objects: .clickable"
+            line="color: #FF0000; opacity: 0.5">
+        </a-entity>
+
+        <a-entity id="rightHand"
+            hand-controls="hand: right; handModelStyle: oculus"
+            laser-controls="hand: right"
+            raycaster="showLine: true; far: 10; interval: 0; objects: .clickable"
+            line="color: #FF0000; opacity: 0.5">
+        </a-entity>
+
+        <!-- VR 界面 -->
+        <a-entity id="ui" position="0 1.6 -1">
+            <a-plane position="0 0 0" width="1" height="0.5" color="#CCC">
+                <a-text id="vrTimer" value="时间: 0.00 秒" position="-0.4 0 0.01" scale="0.3 0.3 0.3"></a-text>
+            </a-plane>
+            <a-box class="clickable start-button" position="-0.4 -0.3 0" width="0.2" height="0.1" depth="0.1" color="#4CAF50">
+                <a-text value="开始" position="0 0 0.06" scale="0.3 0.3 0.3" align="center"></a-text>
+            </a-box>
+            <a-box class="clickable reset-button" position="0 -0.3 0" width="0.2" height="0.1" depth="0.1" color="#f44336">
+                <a-text value="重置" position="0 0 0.06" scale="0.3 0.3 0.3" align="center"></a-text>
+            </a-box>
+        </a-entity>
+
         <!-- 环境 -->
         <a-sky color="#ECECEC"></a-sky>
         <a-light type="ambient" color="#BBB"></a-light>
         <a-light type="directional" color="#FFF" intensity="0.6" position="-0.5 1 1"></a-light>
 
         <!-- 摄像机 -->
-        <a-entity position="0 2 8">
+        <a-entity position="0 1.6 2">
             <a-camera></a-camera>
         </a-entity>
     </a-scene>
