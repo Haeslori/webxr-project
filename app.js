@@ -20,11 +20,18 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentVelocity = 0;
     const GRAVITY = -9.8;
 
+    // 位置更新函数
+    function updateBallPosition(y) {
+        const pos = ball.getAttribute('position');
+        ball.setAttribute('position', `${pos.x} ${y} ${pos.z}`);
+        console.log('Updates von Höhe:', y);
+    }
+
     // 高度调节函数
     function updateHeight() {
         heightDisplay.setAttribute('value', `Höhe: ${currentHeightValue.toFixed(1)} m`);
         platform.setAttribute('position', `0 ${currentHeightValue} 0`);
-        ball.setAttribute('position', `0 ${currentHeightValue - 0.1} 0`);
+        updateBallPosition(currentHeightValue - 0.1);
         heightInput.value = currentHeightValue;
     }
 
@@ -50,33 +57,46 @@ document.addEventListener('DOMContentLoaded', function() {
         const ballPos = ball.getAttribute('position');
         let newY = ballPos.y + currentVelocity * deltaTime;
 
+        console.log('Jetztige Höhe:', newY);
+
         // 检查是否接触地面
         if (newY <= 0.3) {
+            console.log('auf dem boden');
             newY = 0.3;
-            isSimulationRunning = false;
-            clearInterval(timerInterval);
-            const finalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-            const finalText = `Zeit: ${finalTime} s`;
-            timerDisplay.textContent = finalText;
-            vrTimer.setAttribute('value', finalText);
+            updateBallPosition(newY);
+            stopSimulation();
             return;
         }
 
         // 更新小球位置
-        ball.setAttribute('position', `${ballPos.x} ${newY} ${ballPos.z}`);
+        updateBallPosition(newY);
         animationFrameId = requestAnimationFrame(animate);
+    }
+
+    // 停止模拟函数
+    function stopSimulation() {
+        console.log('Stop');
+        isSimulationRunning = false;
+        clearInterval(timerInterval);
+        cancelAnimationFrame(animationFrameId);
+        
+        const finalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        const finalText = `Zeit: ${finalTime} s`;
+        timerDisplay.textContent = finalText;
+        vrTimer.setAttribute('value', finalText);
     }
 
     // 实验控制函数
     function startSimulation() {
         if (!isSimulationRunning) {
-            console.log('Starting simulation');
+            console.log('Start');
             isSimulationRunning = true;
             startTime = Date.now();
             currentVelocity = 0;
 
             // 重置小球位置
-            ball.setAttribute('position', `0 ${currentHeightValue - 0.1} 0`);
+            const startY = currentHeightValue - 0.1;
+            updateBallPosition(startY);
             
             // 开始动画和计时
             animate();
@@ -85,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function resetSimulation() {
-        console.log('Resetting simulation');
+        console.log('Reset');
         isSimulationRunning = false;
         clearInterval(timerInterval);
         cancelAnimationFrame(animationFrameId);
@@ -101,6 +121,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateTimer() {
         if (!isSimulationRunning) return;
+        
+        const ballPos = ball.getAttribute('position');
+        if (ballPos.y <= 0.3) {
+            stopSimulation();
+            return;
+        }
+
         const currentTime = (Date.now() - startTime) / 1000;
         const timeText = `Dauer: ${currentTime.toFixed(2)} s`;
         timerDisplay.textContent = timeText;
@@ -128,14 +155,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     [leftHand, rightHand].forEach(controller => {
         controller.addEventListener('controllerconnected', function(evt) {
-            console.log('控制器已连接:', evt.detail.name);
+            console.log('Controller gefunden:', evt.detail.name);
+            controller.object3D.visible = true;
         });
 
         controller.addEventListener('triggerdown', function() {
             const intersection = controller.components.raycaster.getIntersection();
             if (intersection) {
                 const el = intersection.object.el;
-                console.log('触发按钮:', el.className);
+                console.log('A-Button:', el.className);
                 if (el.classList.contains('start-button')) startSimulation();
                 if (el.classList.contains('reset-button')) resetSimulation();
                 if (el.classList.contains('height-up')) adjustHeight(0.5);
@@ -148,6 +176,11 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('a-scene').addEventListener('enter-vr', function() {
         console.log('VR-Mode');
         controls.style.display = 'none';
+        
+        // 如果实验正在进行，重置它
+        if (isSimulationRunning) {
+            resetSimulation();
+        }
     });
 
     document.querySelector('a-scene').addEventListener('exit-vr', function() {
@@ -158,12 +191,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // VR 按钮点击事件
     document.querySelectorAll('.clickable').forEach(el => {
         el.addEventListener('click', function(evt) {
-            console.log('点击:', this.className);
+            console.log('Klick:', this.className);
             if (this.classList.contains('start-button')) startSimulation();
             if (this.classList.contains('reset-button')) resetSimulation();
             if (this.classList.contains('height-up')) adjustHeight(0.5);
             if (this.classList.contains('height-down')) adjustHeight(-0.5);
         });
+    });
+
+    // 添加位置变化监听
+    ball.addEventListener('componentchanged', function(evt) {
+        if (evt.detail.name === 'position') {
+            console.log('Höheänderung:', evt.detail.newData.y);
+        }
     });
 
     // 初始化
