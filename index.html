@@ -74,7 +74,7 @@
 
         <!-- VR 界面 -->
         <a-entity id="ui" position="0 1.6 -1">
-            <a-plane position="0 0 0" width="1" height="0.5" color="#CCC">
+            <a-plane position="0 0 0" width="1" height="0.5" color="#CCC" class="clickable">
                 <a-text id="vrTimer" value="时间: 0.00 秒" position="-0.4 0 0.01" scale="0.3 0.3 0.3"></a-text>
             </a-plane>
             <a-box class="clickable start-button" position="-0.4 -0.3 0" width="0.2" height="0.1" depth="0.1" color="#4CAF50">
@@ -96,7 +96,7 @@
         <a-entity id="leftHand" 
                   oculus-touch-controls="hand: left"
                   laser-controls="hand: left"
-                  raycaster="objects: .clickable; far: 100; lineColor: red; showLine: true"
+                  raycaster="objects: .clickable; far: 100; lineColor: red; showLine: true; interval: 0"
                   line="color: red; opacity: 0.5"
                   visible="true">
         </a-entity>
@@ -104,15 +104,10 @@
         <a-entity id="rightHand"
                   oculus-touch-controls="hand: right"
                   laser-controls="hand: right"
-                  raycaster="objects: .clickable; far: 100; lineColor: red; showLine: true"
+                  raycaster="objects: .clickable; far: 100; lineColor: red; showLine: true; interval: 0"
                   line="color: red; opacity: 0.5"
                   visible="true">
         </a-entity>
-
-        <!-- 环境 -->
-        <a-sky color="#ECECEC"></a-sky>
-        <a-light type="ambient" color="#BBB"></a-light>
-        <a-light type="directional" color="#FFF" intensity="0.6" position="-0.5 1 1"></a-light>
 
         <!-- 摄像机 -->
         <a-entity position="0 1.6 2">
@@ -120,6 +115,11 @@
                 <a-cursor raycaster="objects: .clickable" cursor="fuse: false"></a-cursor>
             </a-camera>
         </a-entity>
+
+        <!-- 环境 -->
+        <a-sky color="#ECECEC"></a-sky>
+        <a-light type="ambient" color="#BBB"></a-light>
+        <a-light type="directional" color="#FFF" intensity="0.6" position="-0.5 1 1"></a-light>
     </a-scene>
     
     <script src="app.js"></script>
