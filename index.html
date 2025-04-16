@@ -7,8 +7,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-physics-system@v3.3.0/dist/aframe-physics-system.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-environment-component@1.3.1/dist/aframe-environment-component.min.js"></script>
     <style>
         #controls {
             position: fixed;
@@ -23,6 +21,10 @@
             margin-top: 10px;
             font-weight: bold;
         }
+        button {
+            margin: 0 5px;
+            padding: 5px 10px;
+        }
     </style>
 </head>
 <body>
@@ -31,18 +33,17 @@
         <button id="setHeightBtn">Höhe</button>
         <button id="startBtn">Start</button>
         <button id="resetBtn">Reset</button>
-        <div id="timerDisplay">Zeit: 0.00 s</div>
+        <div id="timerDisplay">Dauer: 0.00 s</div>
     </div>
 
-    <a-scene physics="gravity: 0 -9.8 0" webxr="optionalFeatures: hand-tracking, local-floor">
+    <a-scene webxr="optionalFeatures: hand-tracking">
         <!-- 基座 -->
         <a-box id="base" 
             position="0 0.1 0" 
             width="2"
             height="0.2"
             depth="2"
-            color="#666666"
-            static-body>
+            color="#666666">
         </a-box>
 
         <!-- 长杆 -->
@@ -71,30 +72,37 @@
 
         <!-- VR 控制器 -->
         <a-entity id="leftHand" 
-            hand-controls="hand: left; handModelStyle: oculus"
+            oculus-touch-controls="hand: left"
             laser-controls="hand: left"
-            raycaster="showLine: true; far: 10; interval: 0; objects: .clickable"
-            line="color: #FF0000; opacity: 0.5">
+            raycaster="objects: .clickable; far: 100"
+            line="color: red; opacity: 0.5">
         </a-entity>
 
         <a-entity id="rightHand"
-            hand-controls="hand: right; handModelStyle: oculus"
+            oculus-touch-controls="hand: right"
             laser-controls="hand: right"
-            raycaster="showLine: true; far: 10; interval: 0; objects: .clickable"
-            line="color: #FF0000; opacity: 0.5">
+            raycaster="objects: .clickable; far: 100"
+            line="color: red; opacity: 0.5">
         </a-entity>
 
         <!-- VR 界面 -->
         <a-entity id="ui" position="0 1.6 -1">
             <a-plane position="0 0 0" width="1" height="0.5" color="#CCC">
-                <a-text id="vrTimer" value="时间: 0.00 秒" position="-0.4 0 0.01" scale="0.3 0.3 0.3"></a-text>
+                <a-text id="vrTimer" value="Dauer: 0.00 s" position="-0.4 0 0.01" scale="0.3 0.3 0.3"></a-text>
             </a-plane>
             <a-box class="clickable start-button" position="-0.4 -0.3 0" width="0.2" height="0.1" depth="0.1" color="#4CAF50">
-                <a-text value="开始" position="0 0 0.06" scale="0.3 0.3 0.3" align="center"></a-text>
+                <a-text value="Start" position="0 0 0.06" scale="0.3 0.3 0.3" align="center"></a-text>
             </a-box>
             <a-box class="clickable reset-button" position="0 -0.3 0" width="0.2" height="0.1" depth="0.1" color="#f44336">
-                <a-text value="重置" position="0 0 0.06" scale="0.3 0.3 0.3" align="center"></a-text>
+                <a-text value="Reset" position="0 0 0.06" scale="0.3 0.3 0.3" align="center"></a-text>
             </a-box>
+            <a-box class="clickable height-up" position="0.2 -0.3 0" width="0.2" height="0.1" depth="0.1" color="#2196F3">
+                <a-text value="+" position="0 0 0.06" scale="0.3 0.3 0.3" align="center"></a-text>
+            </a-box>
+            <a-box class="clickable height-down" position="0.4 -0.3 0" width="0.2" height="0.1" depth="0.1" color="#2196F3">
+                <a-text value="-" position="0 0 0.06" scale="0.3 0.3 0.3" align="center"></a-text>
+            </a-box>
+            <a-text id="heightDisplay" value="Höhe: 4.0 m" position="0.3 -0.15 0" scale="0.2 0.2 0.2"></a-text>
         </a-entity>
 
         <!-- 环境 -->
@@ -104,7 +112,9 @@
 
         <!-- 摄像机 -->
         <a-entity position="0 1.6 2">
-            <a-camera></a-camera>
+            <a-camera>
+                <a-cursor raycaster="objects: .clickable" cursor="fuse: false"></a-cursor>
+            </a-camera>
         </a-entity>
     </a-scene>
     
