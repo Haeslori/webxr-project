@@ -13,20 +13,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 变量初始化
     let startTime = null;
-    let lastTime = null;
+    let lastFrameTime = null;
     let timerInterval;
     let animationFrameId;
     let isSimulationRunning = false;
     let currentHeightValue = 4.0;
     let currentVelocity = 0;
     const GRAVITY = -9.8;
+    const FIXED_TIMESTEP = 1/60;
 
     // 位置更新函数
     function updateBallPosition(y) {
-        if (ball.object3D) {
-            ball.object3D.position.y = y;
+        if (!ball) {
+            console.warn('小球元素未找到');
+            return;
         }
-        console.log('小球位置更新:', y);
+
+        try {
+            // 更新 object3D 位置
+            ball.object3D.position.set(0, y, 0);
+            // 更新 attribute 位置
+            ball.setAttribute('position', {x: 0, y: y, z: 0});
+            console.log('小球位置更新:', y);
+        } catch (error) {
+            console.error('更新小球位置时出错:', error);
+        }
     }
 
     // 高度调节函数
@@ -50,34 +61,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 动画函数
     function animate(timestamp) {
-        if (!isSimulationRunning) return;
+        if (!isSimulationRunning || !ball) return;
 
         if (!startTime) {
-            startTime = timestamp;
-            lastTime = timestamp;
+            startTime = performance.now();  // 使用 performance.now()
+            lastFrameTime = startTime;
+            currentVelocity = 0;
         }
 
-        const deltaTime = (timestamp - lastTime) / 1000; // 转换为秒
-        lastTime = timestamp;
+        const currentTime = performance.now();
+        const deltaTime = Math.min((currentTime - lastFrameTime) / 1000, 0.1); // 限制最大时间步长
+        lastFrameTime = currentTime;
 
         currentVelocity += GRAVITY * deltaTime;
         
-        // 获取当前小球位置
-        const currentY = ball.object3D.position.y;
-        let newY = currentY + currentVelocity * deltaTime;
+        try {
+            const currentY = ball.object3D.position.y;
+            let newY = currentY + currentVelocity * deltaTime;
 
-        // 检查是否接触地面
-        if (newY <= 0.3) {
-            console.log('小球到达地面');
-            newY = 0.3;
+            if (newY <= 0.3) {
+                console.log('小球到达地面');
+                newY = 0.3;
+                updateBallPosition(newY);
+                stopSimulation();
+                return;
+            }
+
             updateBallPosition(newY);
+            animationFrameId = requestAnimationFrame(animate);
+        } catch (error) {
+            console.error('动画更新时出错:', error);
             stopSimulation();
-            return;
         }
-
-        // 更新小球位置
-        updateBallPosition(newY);
-        animationFrameId = requestAnimationFrame(animate);
     }
 
     // 停止模拟函数
@@ -89,23 +104,22 @@ document.addEventListener('DOMContentLoaded', function() {
         clearInterval(timerInterval);
         cancelAnimationFrame(animationFrameId);
         
-        const finalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        const finalTime = ((performance.now() - startTime) / 1000).toFixed(2);
         const finalText = `最终时间: ${finalTime} 秒`;
         timerDisplay.textContent = finalText;
         vrTimer.setAttribute('value', finalText);
-
-        // 重置时间变量
+        
         startTime = null;
-        lastTime = null;
+        lastFrameTime = null;
     }
 
     // 实验控制函数
     function startSimulation() {
-        if (!isSimulationRunning) {
+        if (!isSimulationRunning && ball) {
             console.log('开始模拟');
             isSimulationRunning = true;
-            startTime = null; // 将在动画函数中初始化
-            lastTime = null;
+            startTime = null;
+            lastFrameTime = null;
             currentVelocity = 0;
 
             // 重置小球位置
@@ -118,6 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // 重置模拟函数
     function resetSimulation() {
         console.log('重置模拟');
         isSimulationRunning = false;
@@ -128,29 +143,34 @@ document.addEventListener('DOMContentLoaded', function() {
         timerDisplay.textContent = '时间: 0.00 秒';
         vrTimer.setAttribute('value', '时间: 0.00 秒');
         
-        // 重置时间和速度变量
+        // 重置所有状态
         startTime = null;
-        lastTime = null;
+        lastFrameTime = null;
         currentVelocity = 0;
         
         // 重置小球位置
         updateHeight();
     }
 
+    // 更新计时器函数
     function updateTimer() {
-        if (!isSimulationRunning || !startTime) return;
+        if (!isSimulationRunning || !ball || !startTime) return;
         
-        // 检查小球位置
-        const currentY = ball.object3D.position.y;
-        if (currentY <= 0.3) {
-            stopSimulation();
-            return;
-        }
+        try {
+            const currentY = ball.object3D.position.y;
+            if (currentY <= 0.3) {
+                stopSimulation();
+                return;
+            }
 
-        const currentTime = (Date.now() - startTime) / 1000;
-        const timeText = `时间: ${currentTime.toFixed(2)} 秒`;
-        timerDisplay.textContent = timeText;
-        vrTimer.setAttribute('value', timeText);
+            const currentTime = (performance.now() - startTime) / 1000;
+            const timeText = `时间: ${currentTime.toFixed(2)} 秒`;
+            timerDisplay.textContent = timeText;
+            vrTimer.setAttribute('value', timeText);
+        } catch (error) {
+            console.error('更新计时器时出错:', error);
+            stopSimulation();
+        }
     }
 
     // 事件监听设置
@@ -217,6 +237,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const scene = document.querySelector('a-scene');
     scene.addEventListener('loaded', function() {
         console.log('场景加载完成');
-        updateHeight();
+        // 确保所有组件都已加载
+        setTimeout(() => {
+            updateHeight();
+        }, 100);
     });
 });
