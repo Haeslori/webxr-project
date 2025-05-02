@@ -107,17 +107,22 @@
                     scale="0.3 0.3 0.3">
             </a-text>
         </a-entity>
+ <!-- 左手激光 + 点击光标 -->
+        <a-entity
+        laser-controls="hand: left"
+        raycaster="objects: .clickable"
+        cursor="rayOrigin: entity; fuse: false"
+        line="color: red; opacity: 0.5">
+        </a-entity>
 
-        <!-- 左手激光控制器 + 点击光 -->
-        <a-entity laser-controls="hand: left"
-                  raycaster="objects: .clickable"
-                  cursor="fuse: false; fuseTimeout: 500">
+  <!-- 右手激光 + 点击光标 -->
+        <a-entity
+        laser-controls="hand: right"
+        raycaster="objects: .clickable"
+        cursor="rayOrigin: entity; fuse: false"
+        line="color: red; opacity: 0.5">
         </a-entity>
-        <!-- 右手激光控制器 + 点击光标 -->
-        <a-entity laser-controls="hand: right"
-                  raycaster="objects: .clickable"
-                  cursor="fuse: false; fuseTimeout: 500">
-        </a-entity>
+       
 
         <!-- 摄像机 & 凝视光标（桌面模式）-->
         <a-entity position="0 1.6 2">
