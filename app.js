@@ -5,10 +5,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const startBtn      = document.getElementById('startBtn');
     const resetBtn      = document.getElementById('resetBtn');
     const timerDisplay  = document.getElementById('timerDisplay');
-    const vrTimer       = document.getElementById('vrTimer');
-    const platform      = document.getElementById('platform');
-    const ball          = document.getElementById('ball');
-    const heightDisplay = document.getElementById('heightDisplay');
+    const vrTimer       = document.getElementById('vrTimer");
+    const platform      = document.getElementById('platform");
+    const ball          = document.getElementById('ball");
+    const heightDisplay = document.getElementById('heightDisplay");
 
     // 常量与状态
     const GRAVITY = -9.8;
@@ -27,9 +27,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 更新平台 & 小球 初始高度
     function updateHeight() {
-        platform.setAttribute('position', 0 ${currentHeightValue} 0);
+        platform.setAttribute('position', `0 ${currentHeightValue} 0`);
         updateBallY(currentHeightValue - 0.1);
-        heightDisplay.setAttribute('value', Höhe: ${currentHeightValue.toFixed(1)} m);
+        heightDisplay.setAttribute('value', `Höhe: ${currentHeightValue.toFixed(1)} m`);
         heightInput.value = currentHeightValue;
     }
 
@@ -41,13 +41,15 @@ document.addEventListener('DOMContentLoaded', function() {
         clearInterval(timerId);
 
         const t = ((performance.now() - startTime) / 1000).toFixed(2);
-        timerDisplay.textContent = Dauer: ${t} s;
-        vrTimer.setAttribute('value', Dauer: ${t} s);
+        timerDisplay.textContent = `Dauer: ${t} s`;
+        vrTimer.setAttribute('value', `Dauer: ${t} s`);
     }
 
-    // 动画循环
-    function animate(now) {
+    // 修改后的动画循环
+    function animate() {
         if (!isSimulationRunning) return;
+
+        const now = performance.now();
 
         if (!startTime) {
             startTime = now;
@@ -69,18 +71,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         updateBallY(y);
-        animId = requestAnimationFrame(animate);
+        animId = window.requestAnimationFrame(animate);
     }
 
     // 更新计时显示
     function updateTimer() {
         if (!isSimulationRunning) return;
         const t = ((performance.now() - startTime) / 1000).toFixed(2);
-        timerDisplay.textContent = Dauer: ${t} s;
-        vrTimer.setAttribute('value', Dauer: ${t} s);
+        timerDisplay.textContent = `Dauer: ${t} s`;
+        vrTimer.setAttribute('value', `Dauer: ${t} s`);
     }
 
-    // 开始模拟
+    // 修改后的开始模拟
     function startSimulation() {
         if (isSimulationRunning) return;
         isSimulationRunning = true;
@@ -88,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
         velocity  = 0;
         updateBallY(currentHeightValue - 0.1);
 
-        animId   = requestAnimationFrame(animate);
+        animId = window.requestAnimationFrame(animate);
         timerId  = setInterval(updateTimer, 50);
     }
 
@@ -114,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 绑定 HTML 按钮（桌面模式）
+    // 绑定 HTML 按钮
     setHeightBtn.addEventListener('click', () => {
         const h = parseFloat(heightInput.value);
         if (h >= 1 && h <= 8) {
@@ -123,22 +125,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isSimulationRunning) resetSimulation();
         }
     });
-    startBtn .addEventListener('click', startSimulation);
-    resetBtn .addEventListener('click', resetSimulation);
+    startBtn.addEventListener('click', startSimulation);
+    resetBtn.addEventListener('click', resetSimulation);
 
-    // 绑定 VR 场景内可点击实体（.clickable）在 A-Frame 中自然触发 click 事件
-    const vrButtons = document.querySelectorAll('.clickable');
-    vrButtons.forEach(el => {
+    // 绑定 VR 按钮
+    document.querySelectorAll('.clickable').forEach(el => {
         el.addEventListener('click', evt => {
-            // 根据 class 决定行为
-            if (el.classList.contains('start-button'))   startSimulation();
-            if (el.classList.contains('reset-button'))   resetSimulation();
-            if (el.classList.contains('height-up'))      adjustHeight( 0.5);
-            if (el.classList.contains('height-down'))    adjustHeight(-0.5);
+            if (el.classList.contains('start-button')) startSimulation();
+            if (el.classList.contains('reset-button')) resetSimulation();
+            if (el.classList.contains('height-up')) adjustHeight(0.5);
+            if (el.classList.contains('height-down')) adjustHeight(-0.5);
         });
     });
 
-    // 场景加载完毕后，设置初始高度
+    // 初始化场景
     document.querySelector('a-scene').addEventListener('loaded', () => {
         setTimeout(updateHeight, 100);
     });
