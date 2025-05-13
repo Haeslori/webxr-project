@@ -2,101 +2,71 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <title>WebVR 自由落体实验</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-  <!-- 我们的脚本 -->
-  <script src="app.js"></script>
+  <title>WebVR 小球下落实验</title>
+  <!-- 引入 A-Frame 1.4.0 框架 -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
   <style>
-    body { margin: 0; overflow: hidden; }
+    body { margin: 0; padding: 0; }
+    /* 桌面模式控制面板样式 */
     #controls {
-      position: fixed; top: 20px; left: 20px; z-index: 999;
-      background: rgba(255,255,255,0.85); padding: 10px; border-radius: 5px;
+      position: absolute; top: 10px; left: 10px;
+      background: rgba(255,255,255,0.8); padding: 10px; border-radius: 4px;
+      font-family: sans-serif; font-size: 14px;
     }
-    #timerDisplay { margin-top: 8px; font-weight: bold; }
-    button { margin: 0 4px; padding: 4px 8px; }
+    #controls input { width: 40px; text-align: center; }
+    #controls button { margin: 0 5px; }
   </style>
 </head>
 <body>
+  <!-- A-Frame 场景定义 -->
+  <a-scene id="scene">
+    <!-- 环境光与定向光照，照亮场景 -->
+    <a-entity light="type: ambient; color: #CCC"></a-entity>
+    <a-entity light="type: directional; intensity: 0.8" position="-1 3 1"></a-entity>
+
+    <!-- 地面平台 -->
+    <a-plane color="#EEEEEE" width="10" height="10" rotation="-90 0 0" position="0 0 0"></a-plane>
+    <!-- 基座 -->
+    <a-cylinder id="base" color="#888" radius="0.3" height="0.2" position="0 0.1 0"></a-cylinder>
+    <!-- 立柱（高度稍后由脚本调整） -->
+    <a-cylinder id="pillar" color="#888" radius="0.08" height="3.6" position="0 1.9 0"></a-cylinder>
+    <!-- 小球 -->
+    <a-sphere id="ball" color="#E51" radius="0.2" position="0 4 0"></a-sphere>
+
+    <!-- VR 模式下的交互 UI -->
+    <!-- 将 UI 容器挂在摄像机下，随视角移动；默认隐藏，进入VR后显示 -->
+    <a-camera id="camera" position="0 1.6 0" wasd-controls-enabled="false" look-controls="true">
+      <!-- 光标：用于凝视点击 VR UI；fuse: false 表示需要点击触发，支持手柄或鼠标点击:contentReference[oaicite:4]{index=4} -->
+      <a-cursor color="#FFC" rayOrigin="mouse" fuse="false"></a-cursor>
+      <!-- UI 平面背景 -->
+      <a-entity id="vr-ui" visible="false" position="0 0 -1">
+        <a-plane color="#000" opacity="0.5" width="0.6" height="0.5" position="0 0 0.01"></a-plane>
+        <!-- 计时器文本 -->
+        <a-entity id="vr-timer" text="value: Time: 0.00 s; color: #FFF; align: center; width: 1.8" position="0 0.17 0"></a-entity>
+        <!-- 高度调整：上箭头 -->
+        <a-entity id="vr-height-up" class="clickable" text="value: ↑; color: #FFF; align: center; width: 1.5" position="-0.2 0.05 0"></a-entity>
+        <!-- 高度数值显示 -->
+        <a-entity id="vr-height-display" text="value: 4 m; color: #FFF; align: center; width: 2" position="-0.2 -0.05 0"></a-entity>
+        <!-- 高度调整：下箭头 -->
+        <a-entity id="vr-height-down" class="clickable" text="value: ↓; color: #FFF; align: center; width: 1.5" position="-0.2 -0.15 0"></a-entity>
+        <!-- Start 按钮 -->
+        <a-entity id="vr-start" class="clickable" text="value: Start; color: #FFF; align: center; width: 2" position="0.2 0.05 0"></a-entity>
+        <!-- Reset 按钮 -->
+        <a-entity id="vr-reset" class="clickable" text="value: Reset; color: #FFF; align: center; width: 2" position="0.2 -0.15 0"></a-entity>
+      </a-entity>
+    </a-camera>
+  </a-scene>
+
   <!-- 桌面模式控制面板 -->
   <div id="controls">
-    <input type="number" id="heightInput" value="4" min="1" max="8" step="0.5" />
-    <button id="setHeightBtn">设定高度</button>
-    <button id="startBtn">Start</button>
-    <button id="resetBtn">Reset</button>
-    <div id="timerDisplay">Dauer: 0.00 s</div>
+    高度 (m): 
+    <input type="number" id="height-input" min="1" max="8" step="1" value="4" />
+    <button id="start-button">Start</button>
+    <button id="reset-button">Reset</button>
+    时间: <span id="timer">0.00 s</span>
   </div>
 
-  <!-- A-Frame 场景 -->
-  <a-scene
-    freefall-controls
-    webxr="optionalFeatures: local-floor"
-    raycaster="objects: .clickable"
-  >
-    <!-- 地面 -->
-    <a-plane rotation="-90 0 0" width="10" height="10" color="#555"></a-plane>
-
-    <!-- 支架 & 滑轮 -->
-    <a-box position="-1 3 -2" depth="0.2" height="6" width="0.2" color="#888"></a-box>
-    <a-box position=" 1 3 -2" depth="0.2" height="6" width="0.2" color="#888"></a-box>
-    <a-cylinder position="0 6 -2" radius="0.1" height="0.5" rotation="0 0 90" color="#aaa"></a-cylinder>
-
-    <!-- 平台 & 球 -->
-    <a-box   id="platform" position="0 4 -2" width="2" height="0.1" depth="2" color="#44f"></a-box>
-    <a-sphere id="ball"     position="0 3.9 -2" radius="0.1" color="#f00"></a-sphere>
-
-    <!-- VR 面板 -->
-    <a-entity position="0 1.6 -1">
-      <a-plane width="1.5" height="1.2" color="#222" opacity="0.8"></a-plane>
-
-      <a-text id="vrTimer"       value="Dauer: 0.00 s" position="-0.7 0.4 0.01"
-              scale="0.3 0.3 0.3" color="#0f0"></a-text>
-      <a-text id="heightDisplay" value="Höhe: 4.0 m"    position="-0.7 0.0 0.01"
-              scale="0.3 0.3 0.3" color="#fff"></a-text>
-
-      <!-- Start -->
-      <a-box class="clickable" button-listener="action:start"
-             position="-0.6 -0.4 0" width="0.5" height="0.2" depth="0.02" color="#4CAF50">
-        <a-text value="Start" align="center" position="0 0 0.03"
-                scale="0.4 0.4 0.4" color="#000"></a-text>
-      </a-box>
-
-      <!-- Reset -->
-      <a-box class="clickable" button-listener="action:reset"
-             position="0.0 -0.4 0" width="0.5" height="0.2" depth="0.02" color="#f44336">
-        <a-text value="Reset" align="center" position="0 0 0.03"
-                scale="0.4 0.4 0.4" color="#000"></a-text>
-      </a-box>
-
-      <!-- Height + -->
-      <a-box class="clickable" button-listener="action:height-up"
-             position="0.6 -0.4 0" width="0.3" height="0.2" depth="0.02" color="#2196F3">
-        <a-text value="+" align="center" position="0 0 0.03"
-                scale="0.4 0.4 0.4" color="#000"></a-text>
-      </a-box>
-
-      <!-- Height - -->
-      <a-box class="clickable" button-listener="action:height-down"
-             position="1.0 -0.4 0" width="0.3" height="0.2" depth="0.02" color="#2196F3">
-        <a-text value="–" align="center" position="0 0 0.03"
-                scale="0.4 0.4 0.4" color="#000"></a-text>
-      </a-box>
-    </a-entity>
-
-    <!-- 激光控制器 & 光标 -->
-    <a-entity laser-controls="hand: left"  raycaster="objects:.clickable" cursor="rayOrigin:entity"></a-entity>
-    <a-entity laser-controls="hand: right" raycaster="objects:.clickable" cursor="rayOrigin:entity"></a-entity>
-
-    <!-- 摄像机 & 鼠标光标 -->
-    <a-entity camera position="0 1.6 2">
-      <a-cursor fuse="false"></a-cursor>
-    </a-entity>
-
-    <!-- 光源 -->
-    <a-sky color="#ECECEC"></a-sky>
-    <a-light type="ambient" color="#BBB"></a-light>
-    <a-light type="directional" color="#FFF" intensity="0.6" position="-0.5 1 1"></a-light>
-  </a-scene>
+  <!-- 引入实验逻辑脚本 -->
+  <script src="app.js"></script>
 </body>
 </html>
