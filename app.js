@@ -1,153 +1,186 @@
-// 获取 DOM 元素和 A-Frame 实体的引用
-const sceneEl     = document.querySelector('#scene');
-const startBtn    = document.querySelector('#start-button');
-const resetBtn    = document.querySelector('#reset-button');
-const heightInput = document.querySelector('#height-input');
-const timerEl     = document.querySelector('#timer');
-const vrTimerEl   = document.querySelector('#vr-timer');
-const vrHeightDispEl = document.querySelector('#vr-height-display');
-// VR 模式下的按钮实体
-const vrStartEl   = document.querySelector('#vr-start');
-const vrResetEl   = document.querySelector('#vr-reset');
-const vrUpEl      = document.querySelector('#vr-height-up');
-const vrDownEl    = document.querySelector('#vr-height-down');
-// 小球与立柱实体
-const ballEl   = document.querySelector('#ball');
-const pillarEl = document.querySelector('#pillar');
+document.addEventListener("DOMContentLoaded", function () {
+  // 正确获取DOM元素
+  const heightInput = document.getElementById("heightInput");
+  const setHeightBtn = document.getElementById("setHeightBtn");
+  const startBtn = document.getElementById("startBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const timerDisplay = document.getElementById("timerDisplay");
+  const vrTimer = document.getElementById("vrTimer");
+  const platform = document.getElementById("platform");
+  const ball = document.getElementById("ball");
+  const heightDisplay = document.getElementById("heightDisplay");
 
-// 全局状态变量
-let currentHeight = 4;            // 当前设定高度（米）
-const ballRadius  = 0.2;          // 小球半径（米）
-const gravity     = 9.8;          // 模拟重力加速度（m/s^2）
-let dropping      = false;        // 是否正在下落模拟中
-let dropStartTime = 0;            // 本次下落开始的时间戳 (ms)
-let dropHeight    = 0;            // 本次下落的初始高度值 (米)
-let dropDuration  = 0;            // 本次下落的理论总时间 (秒) （用于结束判定）
-let rafId;                       // requestAnimationFrame ID，用于需要时取消动画帧
+  // 常量与状态
+  const GRAVITY = -9.8;
+  let currentHeightValue = 4.0;
+  let isSimulationRunning = false;
+  let startTime = null;
+  let lastTime = null;
+  let velocity = 0;
+  let animId, timerId;
 
-// 更新小球和立柱位置到指定高度
-function setHeight(height) {
-  // 限制高度在1~8范围内
-  height = Math.max(1, Math.min(8, height));
-  currentHeight = height;
-  // 更新小球的位置（centerY = 指定高度）
-  ballEl.object3D.position.y = currentHeight;
-  // 更新立柱高度和位置：柱顶达到球底
-  const baseHeight = 0.2;
-  const pillarHeight = currentHeight - ballRadius - baseHeight;
-  pillarEl.setAttribute('height', Math.max(pillarHeight, 0.1));  // 最小高度0.1防止高度过低
-  // 立柱中心位置 = 基座顶端 + 半个立柱高度
-  const pillarCenterY = baseHeight + pillarHeight / 2;
-  pillarEl.object3D.position.y = pillarCenterY;
-  // 更新 VR 界面显示的高度文本
-  vrHeightDispEl.setAttribute('text', 'value', currentHeight + ' m');
-  // 同步桌面输入框的值
-  heightInput.value = currentHeight;
-}
-
-// 下落模拟每帧更新函数
-function animateDrop(timestamp) {
-  if (!dropping) return; // 若下落状态被中止，则停止更新
-  const elapsed = (timestamp - dropStartTime) / 1000;  // 已经过的时间(秒)
-  if (elapsed >= dropDuration) {
-    // 已到达理论落地时间或超过，认为落地
-    ballEl.object3D.position.y = ballRadius;        // 小球放置在地面
-    const finalTime = dropDuration;
-    // 更新计时显示为最终时间并固定两位小数
-    timerEl.textContent = finalTime.toFixed(2) + ' s';
-    vrTimerEl.setAttribute('text', 'value', 'Time: ' + finalTime.toFixed(2) + ' s');
-    // 标记模拟结束
-    dropping = false;
-    // （不再请求下一帧）
-    return;
+  // 更新小球位置
+  function updateBallY(y) {
+    ball.object3D.position.y = y;
+    ball.setAttribute("position", { x: 0, y: y, z: 0 });
   }
-  // 尚未落地，计算当前下落位置：y = 初始高度 - 0.5 * g * t^2
-  const currentY = dropHeight - 0.5 * gravity * elapsed * elapsed;
-  ballEl.object3D.position.y = currentY;
-  // 更新计时显示（保留两位小数）
-  timerEl.textContent = elapsed.toFixed(2) + ' s';
-  vrTimerEl.setAttribute('text', 'value', 'Time: ' + elapsed.toFixed(2) + ' s');
-  // 请求下一帧继续更新
-  rafId = requestAnimationFrame(animateDrop);
-}
 
-// 开始下落模拟
-function startDrop() {
-  if (dropping) return; // 如果已经在下落，则不响应
-  // 固定当前下落高度和开始时间
-  dropHeight = currentHeight;
-  dropStartTime = performance.now();
-  dropDuration = Math.sqrt(2 * (dropHeight - ballRadius) / gravity); // 计算理论下落总时间
-  dropping = true;
-  // 禁用高度输入和Start按钮，避免过程中用户重复触发或调整高度
-  heightInput.disabled = true;
-  startBtn.disabled = true;
-  // 复位计时显示为0并更新 VR/UI 文本
-  timerEl.textContent = '0.00 s';
-  vrTimerEl.setAttribute('text', 'value', 'Time: 0.00 s');
-  // 如果小球已在地面（高度过低情况），直接结束模拟
-  if (dropHeight <= ballRadius) {
-    // 直接不做动画，dropping会在下一步被标记为false
-    ballEl.object3D.position.y = ballRadius;
-    timerEl.textContent = '0.00 s';
-    vrTimerEl.setAttribute('text', 'value', 'Time: 0.00 s');
-    dropping = false;
-    return;
+  // 更新初始高度
+  function updateHeight() {
+    platform.setAttribute("position", `0 ${currentHeightValue} 0`);
+    updateBallY(currentHeightValue - 0.1);
+    heightDisplay.setAttribute(
+      "value",
+      `Höhe: ${currentHeightValue.toFixed(1)} m`
+    );
+    heightInput.value = currentHeightValue;
   }
-  // 开始动画循环
-  rafId = requestAnimationFrame(animateDrop);
-}
 
-// 重置模拟
-function resetDrop() {
-  // 取消任何未执行的动画帧
-  if (rafId) cancelAnimationFrame(rafId);
-  dropping = false;
-  // 将小球恢复到当前设定高度位置
-  setHeight(currentHeight);
-  // 重置计时显示
-  timerEl.textContent = '0.00 s';
-  vrTimerEl.setAttribute('text', 'value', 'Time: 0.00 s');
-  // 重新启用输入和Start按钮
-  heightInput.disabled = false;
-  startBtn.disabled = false;
-}
+  // 停止模拟
+  function stopSimulation() {
+    if (!isSimulationRunning) return;
+    isSimulationRunning = false;
+    cancelAnimationFrame(animId);
+    clearInterval(timerId);
+    animId = null;
 
-// 绑定桌面模式按钮事件
-startBtn.addEventListener('click', startDrop);
-resetBtn.addEventListener('click', resetDrop);
-// 绑定高度输入改变事件
-heightInput.addEventListener('change', () => {
-  setHeight(parseFloat(heightInput.value) || currentHeight);
-});
+    const t = ((performance.now() - startTime) / 1000).toFixed(2);
+    timerDisplay.textContent = `Dauer: ${t} s`;
+    vrTimer.setAttribute("value", `Dauer: ${t} s`);
+  }
 
-// 绑定 VR 模式 UI 交互事件
-// VR按钮通过触发桌面按钮的 click 事件来重用逻辑:contentReference[oaicite:5]{index=5}
-vrStartEl.addEventListener('click', () => {
-  startBtn.click();
-});
-vrResetEl.addEventListener('click', () => {
-  resetBtn.click();
-});
-// VR 高度调整
-vrUpEl.addEventListener('click', () => {
-  if (dropping) return; // 下落过程中不允许调整高度
-  setHeight(currentHeight + 1);
-});
-vrDownEl.addEventListener('click', () => {
-  if (dropping) return;
-  setHeight(currentHeight - 1);
-});
+  // 动画循环
+  function animate() {
+    if (!isSimulationRunning) {
+      animId = null;
+      return;
+    }
 
-// 处理 VR 模式的界面显隐：进入VR时显示 VR UI、隐藏网页控件；退出时反之
-sceneEl.addEventListener('enter-vr', () => {
-  document.querySelector('#vr-ui').setAttribute('visible', 'true');
-  document.querySelector('#controls').style.display = 'none';
-});
-sceneEl.addEventListener('exit-vr', () => {
-  document.querySelector('#vr-ui').setAttribute('visible', 'false');
-  document.querySelector('#controls').style.display = 'block';
-});
+    const now = performance.now();
+    if (!startTime) {
+      startTime = now;
+      lastTime = now;
+      velocity = 0;
+    }
 
-// 页面初始化：根据默认高度设置小球和立柱初始位置
-setHeight(currentHeight);
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+
+    velocity += GRAVITY * dt;
+    let y = ball.object3D.position.y + velocity * dt;
+
+    if (y <= 0.3) {
+      y = 0.3;
+      updateBallY(y);
+      stopSimulation();
+      return;
+    }
+
+    updateBallY(y);
+    animId = window.requestAnimationFrame(animate);
+  }
+
+  // 更新计时器
+  function updateTimer() {
+    if (!isSimulationRunning) return;
+    const t = ((performance.now() - startTime) / 1000).toFixed(2);
+    timerDisplay.textContent = `Dauer: ${t} s`;
+    vrTimer.setAttribute("value", `Dauer: ${t} s`);
+  }
+
+  // 开始模拟
+  function startSimulation() {
+    if (isSimulationRunning) return;
+    isSimulationRunning = true;
+    startTime = null;
+    velocity = 0;
+    updateBallY(currentHeightValue - 0.1);
+
+    animId = window.requestAnimationFrame(animate);
+    timerId = setInterval(updateTimer, 50);
+  }
+
+  // 重置模拟
+  function resetSimulation() {
+    isSimulationRunning = false;
+    cancelAnimationFrame(animId);
+    clearInterval(timerId);
+    animId = null;
+    timerDisplay.textContent = "Dauer: 0.00 s";
+    vrTimer.setAttribute("value", "Dauer: 0.00 s");
+    startTime = null;
+    velocity = 0;
+    updateHeight();
+  }
+
+  // 调整高度
+  function adjustHeight(delta) {
+    const nh = currentHeightValue + delta;
+    if (nh >= 1 && nh <= 8) {
+      currentHeightValue = nh;
+      updateHeight();
+      if (isSimulationRunning) resetSimulation();
+    }
+  }
+
+  // 桌面按钮绑定
+  setHeightBtn.addEventListener("click", () => {
+    const h = parseFloat(heightInput.value);
+    if (h >= 1 && h <= 8) {
+      currentHeightValue = h;
+      updateHeight();
+      if (isSimulationRunning) resetSimulation();
+    }
+  });
+  startBtn.addEventListener("click", startSimulation);
+  resetBtn.addEventListener("click", resetSimulation);
+
+  // VR按钮绑定（事件委托）
+  document.querySelector("a-scene").addEventListener("loaded", function () {
+    // 为所有可点击元素添加事件监听
+    document.querySelectorAll(".clickable").forEach(function (el) {
+      // 点击事件处理
+      el.addEventListener("click", function (evt) {
+        console.log("VR Button clicked:", el.className);
+
+        // 阻止事件冒泡
+        evt.stopPropagation();
+
+        if (el.classList.contains("start-button")) {
+          console.log("Starting simulation in VR mode");
+          if (!isSimulationRunning) {
+            startSimulation();
+          }
+        } else if (el.classList.contains("reset-button")) {
+          console.log("Resetting simulation in VR mode");
+          resetSimulation();
+        } else if (el.classList.contains("height-up")) {
+          console.log("Increasing height in VR mode");
+          adjustHeight(0.5);
+        } else if (el.classList.contains("height-down")) {
+          console.log("Decreasing height in VR mode");
+          adjustHeight(-0.5);
+        }
+      });
+
+      // 添加射线交互反馈
+      el.addEventListener("raycaster-intersected", function () {
+        el.setAttribute("material", "opacity", 0.7);
+      });
+
+      el.addEventListener("raycaster-intersected-cleared", function () {
+        el.setAttribute("material", "opacity", 1);
+      });
+    });
+
+    // 初始化场景
+    console.log("Scene loaded, initializing height");
+    setTimeout(updateHeight, 100);
+  });
+
+  // 添加错误处理
+  window.addEventListener("error", function (event) {
+    console.error("Error in simulation:", event.error);
+    stopSimulation();
+  });
+});
